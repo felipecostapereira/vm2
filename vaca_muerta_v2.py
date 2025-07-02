@@ -12,7 +12,6 @@ from scipy.optimize import curve_fit
 
 
 def func_hiper(x, q0, n, a):
-    # return a * x**2 + b * x + c
     return q0 / np.power(1+n*a*x,1/n)
 
 companies = [
@@ -57,7 +56,17 @@ companies = [
 # companies = '\n\n'.join(companies)
 # print(companies)
 
-decl = None
+msg_help = {
+    'vazao': 'Selcione Qo ou Qg para a vazão dos poços. Qo é em m³/dia e Qg em km³/dia.',
+    'bloco': 'Selcione um ou mais blocos',
+    'year': 'Considerar poços somente após esse ano',
+    'poco': 'Selecione para mostrar no plot a nuvem de pontos',
+    'envoltoria': 'Selcione para mostrar apenas a média e o intevalo de confiança P90,P10',
+    'ajuste': 'Selcione tipo de ajuste ou nenhum (só harmonico por enquanto)',
+    'L': 'Normalizar para L novo?',
+    'q0': 'Vazão no início do poço (zero para deixar o modelo fitar)',
+}
+
 
 path = os.path.join(os.getcwd(),'data')
 df1 = pd.read_csv(os.path.join(path,'produccin-de-pozos-de-gas-y-petrleo-no-convencional_1.csv'), decimal='.')
@@ -81,23 +90,24 @@ dfprod = dfprod[dfprod['tipoestado']!='Parado Transitoriamente']
 # filtros sidebar
 st.sidebar.header('Filtros')
 dfprod2 = dfprod
-qoqg = st.sidebar.selectbox('Vazão: ', options=['qo(m3/d)', 'qg(km3/d)'])
-# listas de bloco e empresas
-sAreas = st.sidebar.multiselect('Bloco', dfprod2['areapermisoconcesion'].unique(), )
+qoqg = st.sidebar.selectbox('Vazão: ', options=['qo(m3/d)', 'qg(km3/d)-nao funciona'], help=msg_help['vazao'])
+# filtrando por bloco e ano de operação
+sAreas = st.sidebar.multiselect('Bloco', dfprod2['areapermisoconcesion'].unique(), help=msg_help['bloco'])
+year_start = st.sidebar.slider("Poços Depois de:", 2010, date.today().year, 2014, 1, help=msg_help['year'])
+filtered_wells = dffrac[((dffrac['areapermisoconcesion'].isin(sAreas) & (dffrac['anio_if']>=year_start)))]['idpozo'].unique()
+dfprod2 = dfprod2[(dfprod2['idpozo'].isin(filtered_wells)) ]
 # sEmpresas = st.sidebar.multiselect('Emrpesas', dfprod2['empresa'].unique(), )
-dfprod2 = dfprod2[(dfprod2['areapermisoconcesion'].isin(sAreas)) ]
-# dfprod2 = dfprod2[(dfprod2['empresa'].isin(sEmpresas)) ]
 
-lenghts = dffrac[dffrac['areapermisoconcesion'].isin(sAreas)]['longitud_rama_horizontal_m']
+lenghts = dffrac[dffrac['idpozo'].isin(filtered_wells)]['longitud_rama_horizontal_m']
 lenghts = lenghts[lenghts>0]
 lmed = lenghts.mean()
-st.sidebar.text(f'Lmédio(m): {lmed:.0f}')
+st.sidebar.text(f'Lmédio: {lmed:.0f}m ({filtered_wells.shape[0]} poços)')
 
 if sAreas:
     meses = np.arange(0,240,1)
-    wells = st.sidebar.checkbox('Poços', value=True)
-    envoltoria = st.sidebar.checkbox('Envoltoria', value=True)
-    fit = st.sidebar.selectbox('Ajuste', options=['Nenhum','Hiperbolico','Exponencial'])
+    wells = st.sidebar.checkbox('Poços', value=False, help=msg_help['poco'])
+    envoltoria = st.sidebar.checkbox('Envoltoria', value=True, help=msg_help['envoltoria'])
+    fit = st.sidebar.selectbox('Ajuste', options=['Nenhum','Hiperbolico','Exponencial'], help=msg_help['ajuste'])
 
     if fit == 'Hiperbolico':
         st.sidebar.latex(r'''Q(t) = \frac{Q_0}{(1+nat)^\frac{1}{n}}''')
@@ -121,22 +131,26 @@ if sAreas:
         p10=p10[p10>5]
         p10=p10[p90>5]
 
-        cols = st.columns([3,2,2,2])
+        cols = st.columns([3,2,2,2,2])
         with cols[0]:
-            L = st.number_input(f"L(m) do DP (Lmed = {lmed:.0f})", value=lmed, step=100.0, help='Normalizar para L novo?')
+            L = st.number_input(f"L(m) do DP (Lmed = {lmed:.0f})", value=lmed, step=100.0, help=msg_help['L'])
         with cols[1]:
             q0_med = st.number_input(r"$Q_0$ Pmed", value=int(np.max(pmed)), step=10, help='Vazão no início do poço (zero para deixar livre)')
         with cols[2]:
             q0_p10 = st.number_input(r"$Q_0$ P10 ", value=int(np.max(p10)), step=10,)
         with cols[3]:
             q0_p90 = st.number_input(r"$Q_0$ P90 ", value=int(np.max(p90)), step=10,)
+        with cols[4]:
+            logscale = st.checkbox('Escala log', value=False)
 
         x = pmed.index.values
         x_10 = p10.index.values
         x_90 = p90.index.values
 
-        if q0_med >0: bounds_med = ([q0_med-0.0000001, -np.inf, -np.inf], [q0_med, np.inf, np.inf])
-        else: bounds_med = ([-np.inf, -np.inf, -np.inf], [np.inf, np.inf, np.inf])
+        if q0_med >0: # quer usar um valor fixo de Q0?
+            bounds_med = ([q0_med-0.0000001, -np.inf, -np.inf], [q0_med, np.inf, np.inf])
+        else:
+            bounds_med = ([-np.inf, -np.inf, -np.inf], [np.inf, np.inf, np.inf])
         if q0_p10 >0: bounds_p10 = ([q0_p10-0.0000001, -np.inf, -np.inf], [q0_p10, np.inf, np.inf])
         else: bounds_p10 = ([-np.inf, -np.inf, -np.inf], [np.inf, np.inf, np.inf])
         if q0_p90 >0: bounds_p90 = ([q0_p90-0.0000001, -np.inf, -np.inf], [q0_p90, np.inf, np.inf])
@@ -156,6 +170,8 @@ if sAreas:
         sns.lineplot(data=prev_med, ax=ax, lw=2, label=f'Ajuste {fit} - med', color='k')
         sns.lineplot(data=prev_p10, ax=ax, lw=2, label=f'Ajuste {fit} - p10', color='g')
         sns.lineplot(data=prev_p90, ax=ax, lw=2, label=f'Ajuste {fit} - p90', color='r')
+        if logscale:
+            ax.set_yscale('log')
         ax2 = ax.twinx()
         ax2.set_ylabel('Np(bbl)')
         sns.lineplot(data=np_prev_med*6.26, ax=ax2, lw=2, color='k', linestyle='--')
