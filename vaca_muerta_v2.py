@@ -129,7 +129,7 @@ if sAreas:
         p10=p10[p10>5]
         p10=p10[p90>5]
 
-        cols = st.columns([3,2,2,2,2])
+        cols = st.columns([3,2,2,2])
         with cols[0]:
             L = st.number_input(f"L(m) do DP (Lmed = {lmed:.0f})", value=lmed, step=100.0, help=msg_help['L'])
         with cols[1]:
@@ -138,8 +138,8 @@ if sAreas:
             q0_p10 = st.number_input(r"$Q_0$ P10 ", value=int(np.max(p10)), step=10,)
         with cols[3]:
             q0_p90 = st.number_input(r"$Q_0$ P90 ", value=int(np.max(p90)), step=10,)
-        with cols[4]:
-            logscale = st.checkbox('Escala log', value=False)
+        # with cols[4]:
+        logscale = st.checkbox('Escala log', value=False)
 
         x = pmed.index.values
         x_10 = p10.index.values
