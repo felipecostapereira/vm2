@@ -90,8 +90,9 @@ dfprod = dfprod[dfprod['tipoestado']!='Parado Transitoriamente']
 st.sidebar.header('Filtros')
 dfprod2 = dfprod
 qoqg = st.sidebar.selectbox('Vazão: ', options=['qo(m3/d)', 'qg(km3/d)-nao funciona'], help=msg_help['vazao'])
+
 # filtrando por bloco e ano de operação
-sAreas = st.sidebar.multiselect('Bloco', dfprod2['areapermisoconcesion'].unique(), help=msg_help['bloco'])
+sAreas = st.sidebar.multiselect('Bloco', dfprod2['areapermisoconcesion'].unique(), default=['LINDERO ATRAVESADO'] help=msg_help['bloco'])
 year_start = st.sidebar.slider("Poços Depois de:", 2010, date.today().year, 2014, 1, help=msg_help['year'])
 filtered_wells = dffrac[((dffrac['areapermisoconcesion'].isin(sAreas) & (dffrac['anio_if']>=year_start)))]['idpozo'].unique()
 dfprod2 = dfprod2[(dfprod2['idpozo'].isin(filtered_wells)) ]
