@@ -65,6 +65,7 @@ msg_help = {
     'q0': 'Vazão no início do poço (zero para deixar o modelo fitar)',
 }
 
+st.subheader('Vaca Muerta - Produção de Poço tipo')
 
 path = os.path.join(os.getcwd(),'data')
 df1 = pd.read_csv(os.path.join(path,'produccin-de-pozos-de-gas-y-petrleo-no-convencional_1.csv'), decimal='.')
@@ -102,7 +103,8 @@ lmed = lenghts.mean()
 st.sidebar.text(f'Lmédio: {lmed:.0f}m ({filtered_wells.shape[0]} poços)')
 
 if sAreas:
-    meses = np.arange(0,240,1)
+    meses = np.arange(0,360,1)
+    max_x = 240
     wells = st.sidebar.checkbox('Poços', value=False, help=msg_help['poco'])
     envoltoria = st.sidebar.checkbox('Envoltoria', value=True, help=msg_help['envoltoria'])
     fit = st.sidebar.selectbox('Ajuste', options=['Nenhum','Hiperbolico','Exponencial'], help=msg_help['ajuste'])
@@ -165,26 +167,26 @@ if sAreas:
         np_prev_p10 = prev_p10.cumsum()*30.41
         np_prev_p90 = prev_p90.cumsum()*30.41
 
-        sns.lineplot(data=prev_med, ax=ax, lw=2, label=f'Ajuste {fit} - med', color='k')
-        sns.lineplot(data=prev_p10, ax=ax, lw=2, label=f'Ajuste {fit} - p10', color='g')
-        sns.lineplot(data=prev_p90, ax=ax, lw=2, label=f'Ajuste {fit} - p90', color='r')
+        sns.lineplot(data=prev_med[:max_x], ax=ax, lw=2, label=f'Ajuste {fit} - med', color='k')
+        sns.lineplot(data=prev_p10[:max_x], ax=ax, lw=2, label=f'Ajuste {fit} - p10', color='g')
+        sns.lineplot(data=prev_p90[:max_x], ax=ax, lw=2, label=f'Ajuste {fit} - p90', color='r')
         if logscale:
             ax.set_yscale('log')
         ax2 = ax.twinx()
         ax2.set_ylabel('Np(bbl)')
-        sns.lineplot(data=np_prev_med*6.26, ax=ax2, lw=2, color='k', linestyle='--')
-        sns.lineplot(data=np_prev_p10*6.26, ax=ax2, lw=2, color='g', linestyle='--')
-        sns.lineplot(data=np_prev_p90*6.26, ax=ax2, lw=2, color='r', linestyle='--')
+        sns.lineplot(data=np_prev_med[:max_x]*6.26, ax=ax2, lw=2, color='k', linestyle='--')
+        sns.lineplot(data=np_prev_p10[:max_x]*6.26, ax=ax2, lw=2, color='g', linestyle='--')
+        sns.lineplot(data=np_prev_p90[:max_x]*6.26, ax=ax2, lw=2, color='r', linestyle='--')
 
         ax.legend(loc='center left', bbox_to_anchor=(0.5, 0.5))
         ax.set_xlabel('Meses')
 
-        with st.expander('Resultados'):
+        with st.expander(':dart: Resultados (30 anos)'):
             dict_results = {
                 'Caso': ['Pmed', 'P10', 'P90'],
                 'Q0[m³/d]': [params_med[0],params_p10[0],params_p90[0]],
-                'n': [params_med[1],params_p10[1],params_p90[1]],
                 'a': [params_med[2],params_p10[2],params_p90[2]],
+                'n': [params_med[1],params_p10[1],params_p90[1]],
                 'Np[kbbl]': [np_prev_med[-1]*6.29/1000,np_prev_p10[-1]*6.29/1000,np_prev_p90[-1]*6.29/1000],
                 'L[m]': [lmed,lmed,lmed],
                 'L[m] DP': [L,L,L],
