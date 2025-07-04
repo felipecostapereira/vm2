@@ -186,9 +186,10 @@ if sAreas:
             dict_results = {
                 'Caso': ['Pmed', 'P10', 'P90'],
                 'Q0[m³/d]': [params_med[0],params_p10[0],params_p90[0]],
-                'a': [params_med[2],params_p10[2],params_p90[2]],
+                'a(a.m.)': [params_med[2],params_p10[2],params_p90[2]],
+                'a(a.a.)': [12*params_med[2],12*params_p10[2],12*params_p90[2]],
                 'n': [params_med[1],params_p10[1],params_p90[1]],
-                'Np[kbbl]': [np_prev_med[-1]*6.29/1000,np_prev_p10[-1]*6.29/1000,np_prev_p90[-1]*6.29/1000],
+                'Np[kbbl]': [np.max(np_prev_med)*6.29/1000,np.max(np_prev_p10)*6.29/1000,np.max(np_prev_p90)*6.29/1000],
                 'L[m]': [lmed,lmed,lmed],
                 'L[m] DP': [L,L,L],
                 'fator': [L/lmed,L/lmed,L/lmed]
